@@ -10,7 +10,7 @@ def login_only():
         print("🚀 Launching Browser (Headful)...")
 
         browser = p.chromium.launch(
-            headless=False,
+            headless=False,  # MUST be False for Xvfb
             args=[
                 "--no-sandbox",
                 "--disable-blink-features=AutomationControlled",
@@ -45,33 +45,43 @@ def login_only():
             )
 
             print("🖱 Clicking Continue with Google...")
-            page.locator(
-                'button[data-id="EmailPage-GoogleSignInButton"]'
-            ).click()
+
+            # 🔥 Handle Google popup page
+            with context.expect_page() as new_page_info:
+                page.locator(
+                    'button[data-id="EmailPage-GoogleSignInButton"]'
+                ).click()
+
+            google_page = new_page_info.value
+            google_page.wait_for_load_state()
 
         except PlaywrightTimeoutError:
             print("❌ Google button not found!")
             browser.close()
             return
 
-        # -------- EMAIL --------
+        # ---------------- EMAIL ----------------
         try:
             print("📧 Waiting for email field...")
-            page.wait_for_selector('input[type="email"]', timeout=60000)
-            page.fill('input[type="email"]', EMAIL)
-            page.keyboard.press("Enter")
+            google_page.wait_for_selector('input[type="email"]', timeout=60000)
+
+            google_page.fill('input[type="email"]', EMAIL)
+            google_page.keyboard.press("Enter")
 
         except PlaywrightTimeoutError:
             print("❌ Email field not found!")
             browser.close()
             return
 
-        # -------- PASSWORD --------
+        # ---------------- PASSWORD ----------------
         try:
             print("🔐 Waiting for password field...")
-            page.wait_for_selector('input[type="password"]', timeout=60000)
-            page.fill('input[type="password"]', PASSWORD)
-            page.keyboard.press("Enter")
+
+            # Better Google selector
+            google_page.wait_for_selector('input[name="Passwd"]', timeout=60000)
+
+            google_page.fill('input[name="Passwd"]', PASSWORD)
+            google_page.keyboard.press("Enter")
 
         except PlaywrightTimeoutError:
             print("❌ Password field not found!")
@@ -115,9 +125,6 @@ def login_only():
         print("🚪 Closing browser...")
         browser.close()
 
-
-if __name__ == "__main__":
-    login_only()
 
 if __name__ == "__main__":
     login_only()
