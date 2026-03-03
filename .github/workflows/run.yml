@@ -22,13 +22,18 @@ jobs:
           pip install playwright
           playwright install --with-deps
 
-      - name: Run Script
+      # 🔥 Install virtual display
+      - name: Install Xvfb
+        run: sudo apt-get install -y xvfb
+
+      # 🔥 Run script in headful mode with virtual display
+      - name: Run Script (Headful)
         env:
           ADOBE_EMAIL: ${{ secrets.ADOBE_EMAIL }}
           ADOBE_PASSWORD: ${{ secrets.ADOBE_PASSWORD }}
-        run: python img-up.py
+        run: |
+          xvfb-run --auto-servernum python img-up.py
 
-      # 🔥 Commit tk.txt back to repo
       - name: Commit tk.txt
         run: |
           git config --global user.name "github-actions"
