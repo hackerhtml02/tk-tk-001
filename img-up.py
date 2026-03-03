@@ -10,7 +10,7 @@ def login_only():
         print("🚀 Launching Browser (Headful)...")
 
         browser = p.chromium.launch(
-            headless=False,  # MUST be False for Xvfb
+            headless=False,
             args=[
                 "--no-sandbox",
                 "--disable-blink-features=AutomationControlled",
@@ -45,28 +45,21 @@ def login_only():
             )
 
             print("🖱 Clicking Continue with Google...")
-
-            # 🔥 Handle Google popup page
-            with context.expect_page() as new_page_info:
-                page.locator(
-                    'button[data-id="EmailPage-GoogleSignInButton"]'
-                ).click()
-
-            google_page = new_page_info.value
-            google_page.wait_for_load_state()
+            page.locator(
+                'button[data-id="EmailPage-GoogleSignInButton"]'
+            ).click()
 
         except PlaywrightTimeoutError:
             print("❌ Google button not found!")
             browser.close()
             return
 
-        # ---------------- EMAIL ----------------
+        # -------- EMAIL --------
         try:
             print("📧 Waiting for email field...")
-            google_page.wait_for_selector('input[type="email"]', timeout=60000)
-
-            google_page.fill('input[type="email"]', EMAIL)
-            google_page.keyboard.press("Enter")
+            page.wait_for_selector('input[type="email"]', timeout=60000)
+            page.fill('input[type="email"]', EMAIL)
+            page.keyboard.press("Enter")
 
         except PlaywrightTimeoutError:
             print("❌ Email field not found!")
