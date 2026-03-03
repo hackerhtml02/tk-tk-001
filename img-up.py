@@ -5,7 +5,6 @@ from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeo
 EMAIL = "newtk1@latterlavender.cfd"
 PASSWORD = "Haris123@"
 
-
 def login_only():
     with sync_playwright() as p:
         print("🚀 Launching Browser (Headful)...")
@@ -28,6 +27,7 @@ def login_only():
 
         page = context.new_page()
 
+        # 🔥 Remove webdriver detection
         page.add_init_script("""
         Object.defineProperty(navigator, 'webdriver', {
             get: () => undefined
@@ -45,15 +45,9 @@ def login_only():
             )
 
             print("🖱 Clicking Continue with Google...")
-
-            # 👇 Capture new popup page
-            with context.expect_page() as new_page_info:
-                page.locator(
-                    'button[data-id="EmailPage-GoogleSignInButton"]'
-                ).click()
-
-            google_page = new_page_info.value
-            google_page.wait_for_load_state()
+            page.locator(
+                'button[data-id="EmailPage-GoogleSignInButton"]'
+            ).click()
 
         except PlaywrightTimeoutError:
             print("❌ Google button not found!")
@@ -63,21 +57,24 @@ def login_only():
         # -------- EMAIL --------
         try:
             print("📧 Waiting for email field...")
-            google_page.wait_for_selector('input[type="email"]', timeout=60000)
-            google_page.fill('input[type="email"]', EMAIL)
-            google_page.keyboard.press("Enter")
+            page.wait_for_selector('input[type="email"]', timeout=60000)
+            page.fill('input[type="email"]', EMAIL)
+            page.keyboard.press("Enter")
 
         except PlaywrightTimeoutError:
             print("❌ Email field not found!")
             browser.close()
             return
 
-        # -------- PASSWORD --------
+        # ---------------- PASSWORD ----------------
         try:
             print("🔐 Waiting for password field...")
-            google_page.wait_for_selector('input[name="Passwd"]', timeout=60000)
-            google_page.fill('input[name="Passwd"]', PASSWORD)
-            google_page.keyboard.press("Enter")
+
+            # Better Google selector
+            page.wait_for_selector('input[name="Passwd"]', timeout=60000)
+
+            page.fill('input[name="Passwd"]', PASSWORD)
+            page.keyboard.press("Enter")
 
         except PlaywrightTimeoutError:
             print("❌ Password field not found!")
@@ -107,10 +104,12 @@ def login_only():
         if bearer_token:
             print("🟢 Token Captured!")
 
+            # 🔥 Base64 Encode
             encoded_token = base64.b64encode(
                 bearer_token.encode()
             ).decode()
 
+            # 🔥 Save to tk.txt
             with open("tk.txt", "w") as f:
                 f.write(encoded_token)
 
