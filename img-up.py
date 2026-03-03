@@ -7,57 +7,84 @@ PASSWORD = "Haris123@"
 
 def login_only():
     with sync_playwright() as p:
+        print("🚀 Launching Browser (Headful)...")
+
         browser = p.chromium.launch(
-            headless=True
+            headless=False,
+            args=[
+                "--no-sandbox",
+                "--disable-blink-features=AutomationControlled",
+                "--disable-dev-shm-usage",
+                "--start-maximized"
+            ]
         )
 
-        context = browser.new_context()
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1366, "height": 768},
+            java_script_enabled=True
+        )
+
         page = context.new_page()
 
-        print("Opening Adobe sign-in page...")
+        # 🔥 Remove webdriver detection
+        page.add_init_script("""
+        Object.defineProperty(navigator, 'webdriver', {
+            get: () => undefined
+        });
+        """)
+
+        print("🌍 Opening Adobe sign-in page...")
         page.goto("https://account.adobe.com/sign-in", timeout=60000)
 
         try:
+            print("🔎 Waiting for Google button...")
             page.wait_for_selector(
                 'button[data-id="EmailPage-GoogleSignInButton"]',
                 timeout=60000
             )
+
+            print("🖱 Clicking Continue with Google...")
             page.locator(
                 'button[data-id="EmailPage-GoogleSignInButton"]'
             ).click()
 
         except PlaywrightTimeoutError:
-            print("Google button not found!")
+            print("❌ Google button not found!")
             browser.close()
             return
 
-        # EMAIL
+        # -------- EMAIL --------
         try:
-            page.wait_for_selector('input[type="email"]', timeout=30000)
+            print("📧 Waiting for email field...")
+            page.wait_for_selector('input[type="email"]', timeout=60000)
             page.fill('input[type="email"]', EMAIL)
             page.keyboard.press("Enter")
+
         except PlaywrightTimeoutError:
-            print("Email field not found!")
+            print("❌ Email field not found!")
             browser.close()
             return
 
-        # PASSWORD
+        # -------- PASSWORD --------
         try:
-            page.wait_for_selector('input[type="password"]', timeout=30000)
+            print("🔐 Waiting for password field...")
+            page.wait_for_selector('input[type="password"]', timeout=60000)
             page.fill('input[type="password"]', PASSWORD)
             page.keyboard.press("Enter")
+
         except PlaywrightTimeoutError:
-            print("Password field not found!")
+            print("❌ Password field not found!")
             browser.close()
             return
 
-        print("Waiting for Bearer token...")
+        print("⏳ Waiting for Bearer token from network...")
 
         bearer_token = None
 
         try:
             while True:
-                request = context.wait_for_event("request", timeout=60000)
+                request = context.wait_for_event("request", timeout=120000)
 
                 if "ims-na1.adobelogin.com/ims/profile" in request.url:
                     auth_header = request.headers.get("authorization")
@@ -67,24 +94,30 @@ def login_only():
                         break
 
         except PlaywrightTimeoutError:
-            print("Timeout waiting for token!")
+            print("❌ Timeout waiting for token!")
             browser.close()
             return
 
         if bearer_token:
-            # 🔥 BASE64 ENCODE
-            encoded = base64.b64encode(
+            print("🟢 Token Captured!")
+
+            # 🔥 Base64 Encode
+            encoded_token = base64.b64encode(
                 bearer_token.encode()
             ).decode()
 
-            # 🔥 SAVE TO FILE
+            # 🔥 Save to tk.txt
             with open("tk.txt", "w") as f:
-                f.write(encoded)
+                f.write(encoded_token)
 
-            print("Token saved to tk.txt (Base64 encoded)")
+            print("✅ Token saved to tk.txt (Base64 encoded)")
 
+        print("🚪 Closing browser...")
         browser.close()
 
+
+if __name__ == "__main__":
+    login_only()
 
 if __name__ == "__main__":
     login_only()
